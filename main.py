@@ -716,7 +716,6 @@ def day4b():
 
 
 # 2023-12-05
-
 def map_a_value(all_maps, source_name, destination_name, source_value):
     # destination range start, the source range start, and the range length.
     for each_map in all_maps:
@@ -849,6 +848,22 @@ def day5b_brute_force_wont_work():
     # submit(lowest_location, part="b", day=5, year=2023)
 
 
+def return_lowest_location(seeds_that_create_low_locations, seed_ranges):
+    for location_seed in seeds_that_create_low_locations:
+        location = location_seed[0]
+        seed = location_seed[1]
+        for seed_range in seed_ranges:
+            if seed_range[0] < seed < seed_range[1]:
+                print(color_my_output(a_string=20 * "**", color='magenta'))
+                print(color_my_output(a_string=20 * "**", color='red'))
+                print(color_my_output(a_string=20 * "**", color='yellow'))
+                print(f"     lowest_location={location}")
+                print(color_my_output(a_string=20 * "**", color='green'))
+                print(color_my_output(a_string=20 * "**", color='cyan'))
+                print(color_my_output(a_string=20 * "**", color='blue'))
+                return location  # Input is in SIZE ORDER. The first hit is THE ANSWER.
+
+
 def day5b():
     """ NEW APPROACH:
     You might get satisfaction by:
@@ -861,11 +876,11 @@ def day5b():
     puzzle = Puzzle(year=2023, day=5)
     dev_lines = "seeds: 79 14 55 13\n\nseed-to-soil map:\n50 98 2\n52 50 48\n\nsoil-to-fertilizer map:\n0 15 37\n37 52 2\n39 0 15\n\nfertilizer-to-water map:\n49 53 8\n0 11 42\n42 0 7\n57 7 4\n\nwater-to-light map:\n88 18 7\n18 25 70\n\nlight-to-temperature map:\n45 77 23\n81 45 19\n68 64 13\n\ntemperature-to-humidity map:\n0 69 1\n1 0 69\n\nhumidity-to-location map:\n60 56 37\n56 93 4"
     puzzle_chunks = dev_lines.split("\n\n")
-    # puzzle_chunks = puzzle.input_data.split("\n\n")
+    puzzle_chunks = puzzle.input_data.split("\n\n")
 
     all_maps = []
     for group in puzzle_chunks[1:]:
-        group_name = group.split("\n")[0].split(" ")[0]
+        # group_name = group.split("\n")[0].split(" ")[0]
         source_name = group.split("\n")[0].split(" ")[0].split("-to-")[0]
         destination_name = group.split("\n")[0].split(" ")[0].split("-to-")[1]
         for line in group.split("\n")[1:]:
@@ -873,25 +888,7 @@ def day5b():
                                                                source_name=source_name,
                                                                destination_name=destination_name)
             all_maps.append(one_range)
-    print(f"all_maps={all_maps}")
-
-    groups = ["seed", "soil", "fertilizer", "water", "light", "temperature", "humidity", "location"]
-
-    all_paths = []
-    seeds_that_create_low_locations = []
-    test_these_locations = range(100)
-    for low_location in test_these_locations:
-        print(f"Trying location {low_location}.")
-        source_value = low_location
-        path_of_travel = {"location": source_value}
-        for group_index in range(len(groups) - 1)[::-1]:
-            source_value = map_a_value(
-                all_maps, source_name=groups[group_index],
-                destination_name=groups[group_index - 1], source_value=source_value)
-            path_of_travel[groups[group_index - 1]] = source_value
-        print(f"path_of_travel={path_of_travel}")
-        all_paths.append(path_of_travel)
-        seeds_that_create_low_locations.append([path_of_travel['seed'], path_of_travel['location']])
+    # print(f"all_maps={all_maps}")
 
     seeds = puzzle_chunks[0].split(" ")[1:]
     seeds = [int(x) for x in seeds]
@@ -902,21 +899,49 @@ def day5b():
     for seed_start_index in range(len(seed_start_values)):
         seed_start_value = seed_start_values[seed_start_index]
         seed_range_value = seed_range_values[seed_start_index]
-        seed_ranges.append(range(seed_start_value, seed_range_value))
+        seed_ranges.append([seed_start_value, seed_start_value + seed_range_value])
 
-    for seed_location in seeds_that_create_low_locations:
-        seed = seed_location[0]
-        location = seed_location[1]
-        for seed_range in seed_ranges:
-            if seed in seed_range:
-                print(f"lowest_location={location}")
-                break
-        break
+    groups = ["seed", "soil", "fertilizer", "water", "light", "temperature", "humidity",
+              "location"][::-1]
 
-    # submit(lowest_location, part="b", day=5, year=2023)
+    all_paths = []
+    seeds_that_create_low_locations = []
+    # Expect the Answer on the order of magnitude of the last answer, and not higher than it:
+    # LAST LOCATION =    389 056 265
+    # PROD: Tried up to  200 000 000
+    # ANSR: Ended up     137 516 820
+    # test_these_locations = range(100000000, 200000000)  # found it while I slept
+    test_these_locations = range(137500000, 200000000)  # fast example
+    # locations [82, 43, 86, 35] should give seeds [79, 14, 55, 13]
+    for low_location in test_these_locations:
+        # print(f"Trying location {low_location}.")
+        source_value = low_location
+        path_of_travel = {"location": source_value}
+        for group_index in range(len(groups) - 1):
+            source_value = map_a_value(
+                all_maps, source_name=groups[group_index],
+                destination_name=groups[group_index + 1], source_value=source_value)
+            path_of_travel[groups[group_index + 1]] = source_value
+        all_paths.append(path_of_travel)
+        seeds_that_create_low_locations.append([path_of_travel['location'], path_of_travel['seed']])
+        lowest_location = return_lowest_location(
+            seeds_that_create_low_locations=[[path_of_travel['location'], path_of_travel['seed']]],
+            seed_ranges=seed_ranges)
+        if lowest_location:
+            submit(lowest_location, part="b", day=5, year=2023)
+            return
+            # print(f"path_of_travel={path_of_travel}")
+    # print(f"seeds_that_create_low_locations={seeds_that_create_low_locations}")
+    """
+    ****************************************
+    ****************************************
+    ****************************************
+         lowest_location=137516820
+    ****************************************
+    ****************************************
+    ****************************************
+    """
 
-
-# day5b()
 
 # 2023-12-06
 def day6():
@@ -959,9 +984,10 @@ def day6():
 
     submit(multiply_ways_to_win_in_races, part="b", day=6, year=2023)
 
+
 # 2023-12-07
 puzzle = Puzzle(year=2023, day=7)
-dev_lines = ""
+dev_lines = "dd"
 puzzle_lines = dev_lines.split("\n")
 # puzzle_lines = puzzle.input_data.split("\n")
 for jj in puzzle_lines:
