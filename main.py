@@ -959,24 +959,23 @@ def day6():
 
     submit(multiply_ways_to_win_in_races, part="b", day=6, year=2023)
 
-"""
 # 2023-12-07
 puzzle = Puzzle(year=2023, day=7)
 dev_lines = ""
 puzzle_lines = dev_lines.split("\n")
 # puzzle_lines = puzzle.input_data.split("\n")
 for jj in puzzle_lines:
-    print(color_my_output(jj, color))
+    print(color_my_output(jj))
 
 # submit(answer, part="a", day=7, year=2023)
-
+"""
 # 2023-12-08
 puzzle = Puzzle(year=2023, day=8)
 dev_lines = ""
 puzzle_lines = dev_lines.split("\n")
 # puzzle_lines = puzzle.input_data.split("\n")
 for jj in puzzle_lines:
-    print(color_my_output(jj, color))
+    print(color_my_output(jj))
 
 # submit(answer, part="a", day=8, year=2023)
 
@@ -987,7 +986,7 @@ dev_lines = ""
 puzzle_lines = dev_lines.split("\n")
 # puzzle_lines = puzzle.input_data.split("\n")
 for jj in puzzle_lines:
-    print(color_my_output(jj, color))
+    print(color_my_output(jj))
 
 # submit(answer, part="a", day=9, year=2023)
 """
