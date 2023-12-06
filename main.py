@@ -968,6 +968,7 @@ for jj in puzzle_lines:
     print(color_my_output(jj))
 
 # submit(answer, part="a", day=7, year=2023)
+
 """
 # 2023-12-08
 puzzle = Puzzle(year=2023, day=8)
