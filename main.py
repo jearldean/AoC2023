@@ -15,7 +15,25 @@ ansi_color_codes = {
 }
 
 
+def rainbow_print_answer(answer, length=40):
+    # The answer is at the end of the rainbow. Helps with visibility of important lines.
+    answer = str(answer)
+    len_answer = len(answer)
+    if len_answer > length:
+        length = len_answer + 10
+    centered = (int((length - len_answer) / 2)) * " "
+    stars = length * "*"
+    print(f"\033[38;5;196m{stars}\033[0m")
+    print(f"\033[38;5;208m{stars}\033[0m")
+    print(f"\033[38;5;226m{stars}\033[0m")
+    print(f"\033[38;5;46m{stars}\033[0m")
+    print(f"\033[38;5;33m{stars}\033[0m")
+    print(f"\033[38;5;129m{stars}\033[0m")
+    print(f"{centered}{answer}")
+
+
 def color_my_output(a_string, color="red"):
+    # https://stackoverflow.com/questions/4842424/list-of-ansi-color-escape-sequences
     color_code = ansi_color_codes[color]
     return f"\033[{color_code};1;1m{a_string}\033[0m"
 
@@ -986,16 +1004,235 @@ def day6():
 
 
 # 2023-12-07
-puzzle = Puzzle(year=2023, day=7)
-dev_lines = "dd"
-puzzle_lines = dev_lines.split("\n")
-# puzzle_lines = puzzle.input_data.split("\n")
-for jj in puzzle_lines:
-    print(color_my_output(jj))
+def identify_the_hand(cards):
+    """
+    Five of a kind, where all five cards have the same label: AAAAA
+    Four of a kind, where four cards have the same label and one card has a different label: AA8AA
+    Full house, where three cards have the same label, and the remaining two cards share a different label: 23332
+    Three of a kind, where three cards have the same label, and the remaining two cards are each different from any other card in the hand: TTT98
+    Two pair, where two cards share one label, two other cards share a second label, and the remaining card has a third label: 23432
+    One pair, where two cards share one label, and the other three cards have a different label from the pair and each other: A23A4
+    High card, where all cards' labels are distinct: 23456
+    """
+    card_count = count_the_cards(cards)
+    list_of_counts = list(card_count.values())
+    if 5 in list_of_counts:
+        return ["Five of a kind", 7]  # [Name of hand, rank]
+    elif 4 in list_of_counts:
+        return ["Four of a kind", 6]
+    elif 3 in list_of_counts:
+        # You might have Three of a kind OR you might have Full house. Need another check:
+        if 2 in list_of_counts:
+            return ["Full house", 5]
+        else:
+            return ["Three of a kind", 4]
+    elif 2 in list_of_counts:
+        # You might have Two pair OR just One pair. Need another check:
+        if list_of_counts.count(2) == 2:
+            return ["Two pair", 3]
+        elif list_of_counts.count(2) == 1:
+            return ["One pair", 2]
+    elif list_of_counts == [1, 1, 1, 1, 1]:
+        return ["High card", 1]
+    else:
+        print(color_my_output(
+            "Some hand we didn't classify got through identify_the_hand()! Fix it!"))
 
-# submit(answer, part="a", day=7, year=2023)
 
-"""
+def count_the_cards(cards):
+    counting_cards = {}
+    for card in cards:
+        counting_cards[card] = counting_cards.get(card, 0) + 1
+    # print(counting_cards)
+    return counting_cards
+
+
+def append_dict_value_list(a_dict, key, value_to_append):
+    if key in a_dict:
+        old_list = a_dict[key]
+        old_list.append(value_to_append)
+        a_dict[key] = old_list
+    else:
+        a_dict[key] = [value_to_append]
+    return a_dict
+
+
+def day7a():
+    puzzle = Puzzle(year=2023, day=7)
+    dev_lines = "32T3K 765\nT55J5 684\nKK677 28\nKTJJT 220\nQQQJA 483"
+    puzzle_lines = dev_lines.split("\n")
+    puzzle_lines = puzzle.input_data.split("\n")
+    ranks = len(puzzle_lines)
+    # print(ranks)
+    hands_dict = {}
+    for jj in puzzle_lines:
+        cards = jj.split(" ")[0]
+        bid = int(jj.split(" ")[1])
+        hand, rank = identify_the_hand(cards=cards)
+        hands_dict[cards] = [hand, rank, bid]
+
+    ranks_dict = {}
+    for cards in hands_dict:
+        rank = hands_dict[cards][1]
+        ranks_dict = append_dict_value_list(ranks_dict, rank, cards)
+    # print(color_my_output(ranks_dict))
+
+    card_scores = "AKQJT98765432"[::-1]  # Small index, small score <> large index, large score
+    rank_multiplier = 10000000000
+    scores_dict = {}
+    for each_rank in ranks_dict:
+        base_score = each_rank * rank_multiplier
+        for each_hand in ranks_dict[each_rank]:
+            hand_score = base_score
+            # print()
+            ##print(each_hand)
+            # print(base_score)
+            for each_card_index in range(len(each_hand)):  # closer to front counts 10x more
+                for card_score_index in range(len(card_scores)):  # single card value
+                    if each_hand[each_card_index] == card_scores[card_score_index]:
+                        # You win that many points
+                        exponent = len(each_hand) - each_card_index - 1
+                        card_score = (card_score_index + 1) * (100 ** exponent)
+                        # print(card_score)
+                        hand_score += card_score
+            # print("-"*5)
+            # print(hand_score)
+            # scores_dict[each_hand] = hand_score
+            if hand_score in scores_dict:
+                print(scores_dict[hand_score])
+                print("matches", hand_score)
+                print(each_hand)
+            scores_dict[hand_score] = each_hand
+    print(color_my_output(scores_dict))
+    # print(len(scores_dict))
+
+    answer = 0
+    ranked_keys = sorted(list(scores_dict.keys()))
+    for index_ in range(len(ranked_keys)):
+        overall_rank = index_ + 1
+        score = ranked_keys[index_]
+        hand = scores_dict[score]
+        print(overall_rank, "\t", hand, "\t", score)
+        bid = hands_dict[hand][2]
+        bid_rank = bid * overall_rank
+        answer += bid_rank
+
+    rainbow_print_answer(answer)
+    submit(answer, part="a", day=7, year=2023)
+
+
+
+
+def identify_the_hand_7b(cards):
+    """
+    Five of a kind, where all five cards have the same label: AAAAA
+    Four of a kind, where four cards have the same label and one card has a different label: AA8AA
+    Full house, where three cards have the same label, and the remaining two cards share a different label: 23332
+    Three of a kind, where three cards have the same label, and the remaining two cards are each different from any other card in the hand: TTT98
+    Two pair, where two cards share one label, two other cards share a second label, and the remaining card has a third label: 23432
+    One pair, where two cards share one label, and the other three cards have a different label from the pair and each other: A23A4
+    High card, where all cards' labels are distinct: 23456
+    """
+    card_count = count_the_cards(cards)
+    wilds = card_count.get('J', 0)
+    card_count.pop('J', "No Key Found")
+    # print(card_count)
+    try:
+        max_card_key = max(card_count, key=card_count.get)
+        old_max_card_key_count = card_count[max_card_key]
+        card_count[max_card_key] = old_max_card_key_count + wilds  # Reassign this value.
+    except ValueError:
+        card_count = {'J': wilds}
+
+    # Then calculate rank as usual.
+
+    list_of_counts = list(card_count.values())
+    if 5 in list_of_counts:
+        return ["Five of a kind", 7]  # [Name of hand, rank]
+    elif 4 in list_of_counts:
+        return ["Four of a kind", 6]
+    elif 3 in list_of_counts:
+        # You might have Three of a kind OR you might have Full house. Need another check:
+        if 2 in list_of_counts:
+            return ["Full house", 5]
+        else:
+            return ["Three of a kind", 4]
+    elif 2 in list_of_counts:
+        # You might have Two pair OR just One pair. Need another check:
+        if list_of_counts.count(2) == 2:
+            return ["Two pair", 3]
+        elif list_of_counts.count(2) == 1:
+            return ["One pair", 2]
+    elif list_of_counts == [1, 1, 1, 1, 1]:
+        return ["High card", 1]
+    else:
+        print(color_my_output(
+            "Some hand we didn't classify got through identify_the_hand()! Fix it!"))
+
+
+def day7b():
+    puzzle = Puzzle(year=2023, day=7)
+    dev_lines = "32T3K 765\nT55J5 684\nKK677 28\nKTJJT 220\nQQQJA 483"
+    puzzle_lines = dev_lines.split("\n")
+    puzzle_lines = puzzle.input_data.split("\n")
+    # print(ranks)
+    hands_dict = {}
+    for jj in puzzle_lines:
+        cards = jj.split(" ")[0]
+        bid = int(jj.split(" ")[1])
+        hand, rank = identify_the_hand_7b(cards=cards)
+        hands_dict[cards] = [hand, rank, bid]
+
+    ranks_dict = {}
+    for cards in hands_dict:
+        rank = hands_dict[cards][1]
+        ranks_dict = append_dict_value_list(ranks_dict, rank, cards)
+    # print(color_my_output(ranks_dict))
+
+    card_scores = "AKQT98765432J"[::-1]  # Small index, small score <> large index, large score
+    rank_multiplier = 10000000000
+    scores_dict = {}
+    for each_rank in ranks_dict:
+        base_score = each_rank * rank_multiplier
+        for each_hand in ranks_dict[each_rank]:
+            hand_score = base_score
+            # print()
+            ##print(each_hand)
+            # print(base_score)
+            for each_card_index in range(len(each_hand)):  # closer to front counts 10x more
+                for card_score_index in range(len(card_scores)):  # single card value
+                    if each_hand[each_card_index] == card_scores[card_score_index]:
+                        # You win that many points
+                        exponent = len(each_hand) - each_card_index - 1
+                        card_score = (card_score_index + 1) * (100 ** exponent)
+                        # print(card_score)
+                        hand_score += card_score
+            # print("-"*5)
+            # print(hand_score)
+            # scores_dict[each_hand] = hand_score
+            if hand_score in scores_dict:
+                print(scores_dict[hand_score])
+                print("matches", hand_score)
+                print(each_hand)
+            scores_dict[hand_score] = each_hand
+    print(color_my_output(scores_dict))
+    # print(len(scores_dict))
+
+    answer = 0
+    ranked_keys = sorted(list(scores_dict.keys()))
+    for index_ in range(len(ranked_keys)):
+        overall_rank = index_ + 1
+        score = ranked_keys[index_]
+        hand = scores_dict[score]
+        print(overall_rank, "\t", hand, "\t", score)
+        bid = hands_dict[hand][2]
+        bid_rank = bid * overall_rank
+        answer += bid_rank
+
+    rainbow_print_answer(answer)
+    submit(answer, part="b", day=7, year=2023)
+
+
 # 2023-12-08
 puzzle = Puzzle(year=2023, day=8)
 dev_lines = ""
@@ -1003,10 +1240,12 @@ puzzle_lines = dev_lines.split("\n")
 # puzzle_lines = puzzle.input_data.split("\n")
 for jj in puzzle_lines:
     print(color_my_output(jj))
-
+answer = "Answer!"
+rainbow_print_answer(answer)
 # submit(answer, part="a", day=8, year=2023)
 
 
+"""
 # 2023-12-09
 puzzle = Puzzle(year=2023, day=9)
 dev_lines = ""
@@ -1014,6 +1253,199 @@ puzzle_lines = dev_lines.split("\n")
 # puzzle_lines = puzzle.input_data.split("\n")
 for jj in puzzle_lines:
     print(color_my_output(jj))
-
+answer = "Answer!"
+rainbow_print_answer(answer)
 # submit(answer, part="a", day=9, year=2023)
+
+
+# 2023-12-10
+puzzle = Puzzle(year=2023, day=10)
+dev_lines = ""
+puzzle_lines = dev_lines.split("\n")
+# puzzle_lines = puzzle.input_data.split("\n")
+for jj in puzzle_lines:
+    print(color_my_output(jj))
+answer = "Answer!"
+rainbow_print_answer(answer)
+# submit(answer, part="a", day=10, year=2023)
+
+
+# 2023-12-11
+puzzle = Puzzle(year=2023, day=11)
+dev_lines = ""
+puzzle_lines = dev_lines.split("\n")
+# puzzle_lines = puzzle.input_data.split("\n")
+for jj in puzzle_lines:
+    print(color_my_output(jj))
+answer = "Answer!"
+rainbow_print_answer(answer)
+# submit(answer, part="a", day=11, year=2023)
+
+
+# 2023-12-12
+puzzle = Puzzle(year=2023, day=12)
+dev_lines = ""
+puzzle_lines = dev_lines.split("\n")
+# puzzle_lines = puzzle.input_data.split("\n")
+for jj in puzzle_lines:
+    print(color_my_output(jj))
+answer = "Answer!"
+rainbow_print_answer(answer)
+# submit(answer, part="a", day=12, year=2023)
+
+
+# 2023-12-13
+puzzle = Puzzle(year=2023, day=13)
+dev_lines = ""
+puzzle_lines = dev_lines.split("\n")
+# puzzle_lines = puzzle.input_data.split("\n")
+for jj in puzzle_lines:
+    print(color_my_output(jj))
+answer = "Answer!"
+rainbow_print_answer(answer)
+# submit(answer, part="a", day=13, year=2023)
+
+
+# 2023-12-14
+puzzle = Puzzle(year=2023, day=14)
+dev_lines = ""
+puzzle_lines = dev_lines.split("\n")
+# puzzle_lines = puzzle.input_data.split("\n")
+for jj in puzzle_lines:
+    print(color_my_output(jj))
+answer = "Answer!"
+rainbow_print_answer(answer)
+# submit(answer, part="a", day=14, year=2023)
+
+
+# 2023-12-15
+puzzle = Puzzle(year=2023, day=15)
+dev_lines = ""
+puzzle_lines = dev_lines.split("\n")
+# puzzle_lines = puzzle.input_data.split("\n")
+for jj in puzzle_lines:
+    print(color_my_output(jj))
+answer = "Answer!"
+rainbow_print_answer(answer)
+# submit(answer, part="a", day=15, year=2023)
+
+
+# 2023-12-16
+puzzle = Puzzle(year=2023, day=16)
+dev_lines = ""
+puzzle_lines = dev_lines.split("\n")
+# puzzle_lines = puzzle.input_data.split("\n")
+for jj in puzzle_lines:
+    print(color_my_output(jj))
+answer = "Answer!"
+rainbow_print_answer(answer)
+# submit(answer, part="a", day=16, year=2023)
+
+
+# 2023-12-17
+puzzle = Puzzle(year=2023, day=17)
+dev_lines = ""
+puzzle_lines = dev_lines.split("\n")
+# puzzle_lines = puzzle.input_data.split("\n")
+for jj in puzzle_lines:
+    print(color_my_output(jj))
+answer = "Answer!"
+rainbow_print_answer(answer)
+# submit(answer, part="a", day=17, year=2023)
+
+
+# 2023-12-18
+puzzle = Puzzle(year=2023, day=18)
+dev_lines = ""
+puzzle_lines = dev_lines.split("\n")
+# puzzle_lines = puzzle.input_data.split("\n")
+for jj in puzzle_lines:
+    print(color_my_output(jj))
+answer = "Answer!"
+rainbow_print_answer(answer)
+# submit(answer, part="a", day=18, year=2023)
+
+
+# 2023-12-19
+puzzle = Puzzle(year=2023, day=19)
+dev_lines = ""
+puzzle_lines = dev_lines.split("\n")
+# puzzle_lines = puzzle.input_data.split("\n")
+for jj in puzzle_lines:
+    print(color_my_output(jj))
+answer = "Answer!"
+rainbow_print_answer(answer)
+# submit(answer, part="a", day=19, year=2023)
+
+
+# 2023-12-20
+puzzle = Puzzle(year=2023, day=20)
+dev_lines = ""
+puzzle_lines = dev_lines.split("\n")
+# puzzle_lines = puzzle.input_data.split("\n")
+for jj in puzzle_lines:
+    print(color_my_output(jj))
+answer = "Answer!"
+rainbow_print_answer(answer)
+# submit(answer, part="a", day=20, year=2023)
+
+
+# 2023-12-21
+puzzle = Puzzle(year=2023, day=21)
+dev_lines = ""
+puzzle_lines = dev_lines.split("\n")
+# puzzle_lines = puzzle.input_data.split("\n")
+for jj in puzzle_lines:
+    print(color_my_output(jj))
+answer = "Answer!"
+rainbow_print_answer(answer)
+# submit(answer, part="a", day=21, year=2023)
+
+
+# 2023-12-22
+puzzle = Puzzle(year=2023, day=22)
+dev_lines = ""
+puzzle_lines = dev_lines.split("\n")
+# puzzle_lines = puzzle.input_data.split("\n")
+for jj in puzzle_lines:
+    print(color_my_output(jj))
+answer = "Answer!"
+rainbow_print_answer(answer)
+# submit(answer, part="a", day=22, year=2023)
+
+
+# 2023-12-23
+puzzle = Puzzle(year=2023, day=23)
+dev_lines = ""
+puzzle_lines = dev_lines.split("\n")
+# puzzle_lines = puzzle.input_data.split("\n")
+for jj in puzzle_lines:
+    print(color_my_output(jj))
+answer = "Answer!"
+rainbow_print_answer(answer)
+# submit(answer, part="a", day=23, year=2023)
+
+
+# 2023-12-24
+puzzle = Puzzle(year=2023, day=24)
+dev_lines = ""
+puzzle_lines = dev_lines.split("\n")
+# puzzle_lines = puzzle.input_data.split("\n")
+for jj in puzzle_lines:
+    print(color_my_output(jj))
+answer = "Answer!"
+rainbow_print_answer(answer)
+# submit(answer, part="a", day=24, year=2023)
+
+
+# 2023-12-25
+puzzle = Puzzle(year=2023, day=25)
+dev_lines = ""
+puzzle_lines = dev_lines.split("\n")
+# puzzle_lines = puzzle.input_data.split("\n")
+for jj in puzzle_lines:
+    print(color_my_output(jj))
+answer = "Answer!"
+rainbow_print_answer(answer)
+# submit(answer, part="a", day=25, year=2023)
 """
