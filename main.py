@@ -1629,151 +1629,72 @@ def day10():
 
 
 # 2023-12-11
-def add_a_line(galaxy_data, add_a_blank_line):
-    new_dot_coordinates = []
-    old_dot_coordinates = galaxy_data["."]
-    for old_dot_coordinate in old_dot_coordinates:
-        y, x = old_dot_coordinate
-        if y < add_a_blank_line:
-            new_dot_coordinates.append([y, x])  # No change     0-2
-        elif y == add_a_blank_line:
-            new_dot_coordinates.append([y, x])  # Original Line remains      3
-            new_dot_coordinates.append([y + 1, x])  # Add the new line OF DOTS       4
-        elif y > add_a_blank_line:
-            new_dot_coordinates.append([y + 1, x])  # Bump up everyone else by 1    5-...
-    galaxy_data["."] = new_dot_coordinates
+def day11():
+    puzzle = Puzzle(year=2023, day=11)
+    dev_lines = "...#......\n.......#..\n#.........\n..........\n......#...\n.#........\n.........#\n..........\n.......#..\n#...#....."
+    puzzle_lines = dev_lines.split("\n")
+    puzzle_lines = puzzle.input_data.split("\n")
 
-    new_hash_coordinates = []
-    old_hash_coordinates = galaxy_data["#"]
-    for old_hash_coordinate in old_hash_coordinates:
-        y, x = old_hash_coordinate
-        if y < add_a_blank_line:
-            new_hash_coordinates.append([y, x])  # No change     0-2
-        elif y == add_a_blank_line:
-            print("there should not be a hash here!")
-            # new_hash_coordinates.append([y, x])  # Original Line remains      3
-            # Don't add a new line for hashes, only dots.
-        elif y > add_a_blank_line:
-            new_hash_coordinates.append([y + 1, x])  # Bump up everyone else by 1    5-...
-    galaxy_data["#"] = new_dot_coordinates
+    galaxy_data = {}
+    for line_index in range(len(puzzle_lines)):  # Line is y coordinate, char is x coordinate.
+        for char_index in range(len(puzzle_lines[line_index])):
+            char = puzzle_lines[line_index][char_index]
+            coordinates = [line_index, char_index]
+            galaxy_data = append_dict_value_list(galaxy_data, char, coordinates)
 
-    return galaxy_data
-
-
-def add_a_column(galaxy_data, add_a_blank_column):
-    new_dot_coordinates = []
-    old_dot_coordinates = galaxy_data["."]
-    for old_dot_coordinate in old_dot_coordinates:
-        y, x = old_dot_coordinate
-        if x < add_a_blank_column:
-            new_dot_coordinates.append([y, x])  # No change     0-2
-        elif x == add_a_blank_column:
-            new_dot_coordinates.append([y, x])  # Original Column remains      3
-            new_dot_coordinates.append([y, x + 1])  # Add the new column OF DOTS       4
-        elif x > add_a_blank_column:
-            new_dot_coordinates.append([y, x + 1])  # Bump up everyone else by 1    5-...
-    galaxy_data["."] = new_dot_coordinates
-
-    new_hash_coordinates = []
-    old_hash_coordinates = galaxy_data["#"]
-    for old_hash_coordinate in old_hash_coordinates:
-        y, x = old_hash_coordinate
-        if x < add_a_blank_column:
-            new_hash_coordinates.append([y, x])  # No change     0-2
-        elif x == add_a_blank_column:
-            print("there should not be a hash here!")
-        #    new_hash_coordinates.append([y, x])  # Original Column remains      3
-        #    # Don't add a line for hashes, only dots.
-        elif x > add_a_blank_column:
-            new_hash_coordinates.append([y, x + 1])  # Bump up everyone else by 1;  line 4 -> 5
-    galaxy_data["#"] = new_hash_coordinates
-
-    return galaxy_data
-
-
-puzzle = Puzzle(year=2023, day=11)
-dev_lines = "...#......\n.......#..\n#.........\n..........\n......#...\n.#........\n.........#\n..........\n.......#..\n#...#....."
-puzzle_lines = dev_lines.split("\n")
-# puzzle_lines = puzzle.input_data.split("\n")
-
-galaxy_data = {}
-for line_index in range(len(puzzle_lines)):  # Line is y coordinate, char is x coordinate.
-    for char_index in range(len(puzzle_lines[line_index])):
-        char = puzzle_lines[line_index][char_index]
-        coordinates = [line_index, char_index]
-        galaxy_data = append_dict_value_list(galaxy_data, char, coordinates)
-
-# for jj in galaxy_data:
-#    print(color_my_output(galaxy_data[jj]))
-
-blank_lines = []
-for line_index in range(len(puzzle_lines)):
-    count_dots = 0
-    for coord in galaxy_data["."]:
-        y, x = coord
-        if y == line_index:
-            count_dots += 1
-    if count_dots == len(puzzle_lines):
-        blank_lines.append(line_index)
-
-blank_columns = []
-for line_index in range(len(puzzle_lines)):
-    for char_index in range(len(puzzle_lines[line_index])):
+    blank_lines = []
+    for line_index in range(len(puzzle_lines)):
         count_dots = 0
         for coord in galaxy_data["."]:
             y, x = coord
-            if x == char_index:
+            if y == line_index:
                 count_dots += 1
-        if count_dots == len(puzzle_lines) and char_index not in blank_columns:
-            blank_columns.append(char_index)
+        if count_dots == len(puzzle_lines):
+            blank_lines.append(line_index)
 
-# We know the places to add a blank line/column. So, let's just rebuild the data again with our new knowledge.
-# AND!  We don't have to calculate the dots. We're only interested in hash.
+    blank_columns = []
+    for line_index in range(len(puzzle_lines)):
+        for char_index in range(len(puzzle_lines[line_index])):
+            count_dots = 0
+            for coord in galaxy_data["."]:
+                y, x = coord
+                if x == char_index:
+                    count_dots += 1
+            if count_dots == len(puzzle_lines) and char_index not in blank_columns:
+                blank_columns.append(char_index)
 
-old_hash_coords = galaxy_data["#"]
-print(old_hash_coords)
-new_hash_coords = []
-part_a_adder = 1
-part_b_adder = 1000000-1    # one row is worth a million. So ADD 999999
-for coord in old_hash_coords:
-    y, x = coord
-    line_jump = 0
-    column_jump = 0
-    for ll in blank_lines:
-        if y > ll:
-            line_jump += part_b_adder
-    for cc in blank_columns:
-        if x > cc:
-            column_jump += part_b_adder
-    new_coordinate = [y + line_jump, x + column_jump]
-    new_hash_coords.append(new_coordinate)
+    # We know the places to add a blank line/column. So, let's just rebuild the data again with our new knowledge.
+    # AND!  We don't have to calculate the dots. We're only interested in hash.
 
-print(new_hash_coords)
-# [[0, 4], [1, 9], [2, 0], [5, 8], [6, 1], [7, 12], [10, 9], [11, 0], [11, 5]]
-# [[0, 4], [1, 9], [2, 0], [5, 8], [6, 1], [7, 12], [10, 9], [11, 0], [11, 5]]
+    old_hash_coords = galaxy_data["#"]
+    new_hash_coords = []
+    part_a_adder = 1
+    part_b_adder = 1000000 - 1  # 'one row is worth a million.' We're doing ADD so, ADD 999999
+    for coord in old_hash_coords:
+        y, x = coord
+        line_jump = 0
+        column_jump = 0
+        for ll in blank_lines:
+            if y > ll:
+                line_jump += part_b_adder
+        for cc in blank_columns:
+            if x > cc:
+                column_jump += part_b_adder
+        new_coordinate = [y + line_jump, x + column_jump]
+        new_hash_coords.append(new_coordinate)
 
-#
-# for add_a_blank_line in blank_lines:
-#     galaxy_data = add_a_line(galaxy_data, add_a_blank_line)
-#
-# for add_a_blank_column in blank_columns:
-#     galaxy_data = add_a_column(galaxy_data, add_a_blank_column)
+    answer = 0
+    for coordinate_index in range(len(new_hash_coords)):
+        for internal_index in range(coordinate_index + 1, len(new_hash_coords)):
+            walk_steps = 0
+            start_x, start_y = new_hash_coords[coordinate_index]
+            end_x, end_y = new_hash_coords[internal_index]
+            walk_steps += abs(start_x - end_x)
+            walk_steps += abs(start_y - end_y)
+            answer += walk_steps
 
-answer = 0
-for coordinate_index in range(len(new_hash_coords)):
-    for internal_index in range(coordinate_index + 1, len(new_hash_coords)):
-        walk_steps = 0
-        start_x, start_y = new_hash_coords[coordinate_index]
-        end_x, end_y = new_hash_coords[internal_index]
-        walk_steps += abs(start_x - end_x)
-        walk_steps += abs(start_y - end_y)
-        answer += walk_steps
-
-# for jj in galaxy_data:
-#    print(color_my_output(galaxy_data[jj]))
-# answer = "Answer!"
-rainbow_print_answer(answer)
-#submit(answer, part="b", day=11, year=2023)
+    rainbow_print_answer(answer)
+    submit(answer, part="b", day=11, year=2023)
 
 
 """
