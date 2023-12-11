@@ -1121,8 +1121,6 @@ def day7a():
     submit(answer, part="a", day=7, year=2023)
 
 
-
-
 def identify_the_hand_7b(cards):
     """
     Five of a kind, where all five cards have the same label: AAAAA
@@ -1234,54 +1232,551 @@ def day7b():
 
 
 # 2023-12-08
-puzzle = Puzzle(year=2023, day=8)
-dev_lines = ""
-puzzle_lines = dev_lines.split("\n")
-# puzzle_lines = puzzle.input_data.split("\n")
-for jj in puzzle_lines:
-    print(color_my_output(jj))
-answer = "Answer!"
-rainbow_print_answer(answer)
-# submit(answer, part="a", day=8, year=2023)
+def day8a():
+    puzzle = Puzzle(year=2023, day=8)
+    dev_lines = "RL\n\nAAA = (BBB, CCC)\nBBB = (DDD, EEE)\nCCC = (ZZZ, GGG)\nDDD = (DDD, DDD)\nEEE = (EEE, EEE)\nGGG = (GGG, GGG)\nZZZ = (ZZZ, ZZZ)"
+    dev_lines = "LLR\n\nAAA = (BBB, BBB)\nBBB = (AAA, ZZZ)\nZZZ = (ZZZ, ZZZ)"
+    puzzle_lines = dev_lines.split("\n")
+    # puzzle_lines = puzzle.input_data.split("\n")
+    left_right_instructions = puzzle_lines[0]
+    node_map = puzzle_lines[2:]
+
+    node_dict = {}
+    for jj in node_map:
+        origin = jj.split(" = ")[0]
+        left_destination = jj.split(" = ")[1].replace("(", "").replace(")", "").split(", ")[0]
+        right_destination = jj.split(" = ")[1].replace("(", "").replace(")", "").split(", ")[1]
+        node_dict[origin] = [left_destination, right_destination]
+
+    current_node = "AAA"
+    steps = 0
+    looped_instructions = left_right_instructions * 44000
+    print(looped_instructions)
+    print(node_dict)
+    for char_index in range(len(looped_instructions)):
+        char = looped_instructions[char_index]
+        if char == "L":
+            current_node = node_dict[current_node][0]
+        elif char == "R":
+            current_node = node_dict[current_node][1]
+        else:
+            print(color_my_output("Problem with the node separation."))
+        steps += 1
+        print(current_node)
+        if current_node == "ZZZ":
+            break
+
+    rainbow_print_answer(steps)
+    submit(steps, part="a", day=8, year=2023)
 
 
-"""
+def navigate_the_map(node_dict, starting_node, instruction):
+    if instruction == "L":
+        arrival_node = node_dict[starting_node][0]
+    elif instruction == "R":
+        arrival_node = node_dict[starting_node][1]
+    else:
+        print(color_my_output("Problem with the node separation."))
+    return arrival_node
+
+
+def check_for_completion(arrival_nodes):
+    for arrival_node in arrival_nodes:
+        # print(arrival_node[2])
+        if arrival_node[2] != "Z":
+            return False
+    return True
+
+
+def group_node_traversal(node_dict, list_of_nodes, instruction):
+    arrival_nodes = []
+    for each_node in list_of_nodes:
+        arrival_node = navigate_the_map(node_dict, each_node, instruction)
+        arrival_nodes.append(arrival_node)
+    return arrival_nodes
+
+
+def get_xxa_nodes(node_dict):
+    xxa_nodes = []
+    for key in node_dict:
+        if key[2] == "A":
+            xxa_nodes.append(key)
+    return xxa_nodes
+
+
+def day8b_brute_force_wont_work():
+    puzzle = Puzzle(year=2023, day=8)
+    dev_lines = "LR\n\n11A = (11B, XXX)\n11B = (XXX, 11Z)\n11Z = (11B, XXX)\n22A = (22B, XXX)\n22B = (22C, 22C)\n22C = (22Z, 22Z)\n22Z = (22B, 22B)\nXXX = (XXX, XXX)"
+    puzzle_lines = dev_lines.split("\n")
+    puzzle_lines = puzzle.input_data.split("\n")
+    left_right_instructions = puzzle_lines[0]
+    node_map = puzzle_lines[2:]
+
+    node_dict = {}
+    for jj in node_map:
+        origin = jj.split(" = ")[0]
+        left_destination = jj.split(" = ")[1].replace("(", "").replace(")", "").split(", ")[0]
+        right_destination = jj.split(" = ")[1].replace("(", "").replace(")", "").split(", ")[1]
+        node_dict[origin] = [left_destination, right_destination]
+    print(len(node_dict), node_dict)
+
+    xxa_nodes = get_xxa_nodes(node_dict)
+    arrival_nodes = xxa_nodes  # starting list
+    print(len(arrival_nodes), arrival_nodes)
+    steps = 0
+
+    looped_instructions = left_right_instructions * 5000000
+    # print(looped_instructions)
+    for instruction in looped_instructions:
+        arrival_nodes = group_node_traversal(node_dict, arrival_nodes, instruction)
+        steps += 1
+        if steps % 100 == 0:
+            print(instruction, arrival_nodes, steps)
+        if check_for_completion(arrival_nodes):
+            rainbow_print_answer(steps)
+            # submit(steps, part="b", day=8, year=2023)
+            break
+
+
+def lcm_looping(looped_instructions, arrival_node, node_dict):
+    lcm_steps = 0
+    for instruction in looped_instructions:
+        arrival_node = navigate_the_map(
+            node_dict, starting_node=arrival_node, instruction=instruction)
+        lcm_steps += 1
+        if arrival_node[2] == "Z":
+            return lcm_steps
+
+
+def day8b():
+    puzzle = Puzzle(year=2023, day=8)
+    dev_lines = "LR\n\n11A = (11B, XXX)\n11B = (XXX, 11Z)\n11Z = (11B, XXX)\n22A = (22B, XXX)\n22B = (22C, 22C)\n22C = (22Z, 22Z)\n22Z = (22B, 22B)\nXXX = (XXX, XXX)"
+    puzzle_lines = dev_lines.split("\n")
+    puzzle_lines = puzzle.input_data.split("\n")
+    left_right_instructions = puzzle_lines[0]
+    node_map = puzzle_lines[2:]
+
+    node_dict = {}
+    for jj in node_map:
+        origin = jj.split(" = ")[0]
+        left_destination = jj.split(" = ")[1].replace("(", "").replace(")", "").split(", ")[0]
+        right_destination = jj.split(" = ")[1].replace("(", "").replace(")", "").split(", ")[1]
+        node_dict[origin] = [left_destination, right_destination]
+    # print(len(node_dict), node_dict)
+
+    xxa_nodes = get_xxa_nodes(node_dict)
+    looped_instructions = left_right_instructions * 50000000
+    lcm_strategy = []
+
+    for arrival_node in xxa_nodes:
+        lcm_steps = lcm_looping(looped_instructions, arrival_node, node_dict)
+        lcm_strategy.append(lcm_steps)
+
+    print(len(lcm_strategy), lcm_strategy)
+
+    steps = 1
+    for each_multiple in lcm_strategy:
+        steps *= each_multiple
+
+    rainbow_print_answer(steps)
+    submit(steps, part="b", day=8, year=2023)
+
+
+# day8b()
+
 # 2023-12-09
-puzzle = Puzzle(year=2023, day=9)
-dev_lines = ""
-puzzle_lines = dev_lines.split("\n")
-# puzzle_lines = puzzle.input_data.split("\n")
-for jj in puzzle_lines:
-    print(color_my_output(jj))
-answer = "Answer!"
-rainbow_print_answer(answer)
-# submit(answer, part="a", day=9, year=2023)
+def get_differences(numbers):
+    differences = []
+    for number_index in range(len(numbers) - 1):
+        difference = numbers[number_index + 1] - numbers[number_index]
+        differences.append(difference)
+    return differences
+
+
+def next_number(numbers):
+    step_list = []
+    step_list.append(numbers)
+    print(numbers)
+    while any(step_list[-1]):
+        upper_row = step_list[-1]
+        this_step = []
+        for i in range(len(upper_row) - 1):
+            this_step.append(upper_row[i + 1] - upper_row[i])
+        step_list.append(this_step)
+    result = 0
+    for i in range(len(step_list)):
+        result += step_list[i][-1]
+
+    return result
+
+
+def prev_number(numbers):
+    step_list = []
+    step_list.append(numbers)
+    while any(step_list[-1]):
+        upper_row = step_list[-1]
+        this_step = []
+        for i in range(len(upper_row) - 1):
+            this_step.append(upper_row[i + 1] - upper_row[i])
+        step_list.append(this_step)
+
+    step_list.reverse()
+    result = 0
+    for i in range(len(step_list)):
+        result = step_list[i][0] - result
+
+    return result
+
+
+def day9():
+    puzzle = Puzzle(year=2023, day=9)
+    dev_lines = "0 3 6 9 12 15\n1 3 6 10 15 21\n10 13 16 21 30 45"
+    puzzle_lines = dev_lines.split("\n")
+    puzzle_lines = puzzle.input_data.split("\n")
+    sum_extrapo_values = 0
+
+    for line in puzzle_lines:
+        numbers = line.split(" ")
+        numbers = [int(x) for x in numbers]
+
+        sum_extrapo_values += prev_number(numbers)
+
+        ########## THIS GIVES AN ANSWER OFF BY 8:
+        # print(numbers)
+        # last_numbers = [numbers[-1]]
+        #
+        # while sum(numbers) != 0:
+        #     numbers = get_differences(numbers)
+        #     last_numbers.append(numbers[-1])
+        #     #print(numbers)
+        #
+        # sum_extrapo_values += sum(last_numbers)
+        #
+        # print(color_my_output(last_numbers), " = ",
+        #       color_my_output(sum(last_numbers), color='green'))
+    #
+    # extrapo_values = []
+    # for line in puzzle_lines:
+    #     numbers = line.split(" ")
+    #     numbers = [int(x) for x in numbers]
+    #     print(numbers)
+    #     last_numbers = [numbers[-1]]
+    #     #extrapo_values.append(numbers[-1])
+    #     #differences = numbers
+    #     while sum(differences) != 0:
+    #         differences = get_differences(differences)
+    #         print(differences)
+    #         last_numbers.append(differences[-1])
+    #     #print(color_my_output(f"{last_numbers} = {sum(last_numbers)}"))
+    #     #extrapo_values += sum(last_numbers)
+    #     # Now figure the next value
+    #     #extrapo_number = 0
+    #     #for ln in last_numbers[::-1]:
+    #     #    extrapo_number += sum(last_numbers[ln:0:-1])
+    #     extrapo_number = sum(last_numbers)
+    #     extrapo_values.append(extrapo_number)
+    #     print(color_my_output(last_numbers), " = ", color_my_output(extrapo_number, color='green'))
+
+    rainbow_print_answer(sum_extrapo_values)
+    submit(sum_extrapo_values, part="b", day=9, year=2023)
 
 
 # 2023-12-10
-puzzle = Puzzle(year=2023, day=10)
-dev_lines = ""
-puzzle_lines = dev_lines.split("\n")
-# puzzle_lines = puzzle.input_data.split("\n")
-for jj in puzzle_lines:
-    print(color_my_output(jj))
-answer = "Answer!"
-rainbow_print_answer(answer)
-# submit(answer, part="a", day=10, year=2023)
+def who_are_my_neighbors_with_coords_all(line_index, char_index, puzzle_lines):
+    """
+    [[line_index, char_index, char], ...]
+
+    """
+    neighbors = []
+    up = line_index - 1
+    down = line_index + 1
+    left = char_index - 1
+    right = char_index + 1
+    center_square_char = puzzle_lines[line_index][char_index]
+    eight_surrounding_coordinates = {"upper_left": [up, left],
+                                     "upper_center": [up, char_index],
+                                     "upper_right": [up, right],
+                                     "lower_left": [down, left],
+                                     "lower_center": [down, char_index],
+                                     "lower_right": [down, right],
+                                     "same_left": [line_index, left],
+                                     "same_right": [line_index, right]}
+
+    for neighbor_relation in eight_surrounding_coordinates:
+        y, x = eight_surrounding_coordinates[neighbor_relation]
+        try:
+            neighbor_char = puzzle_lines[y][x]
+            if legal_connection(center_square_char, neighbor_char, neighbor_relation):
+                entry = [y, x, color_my_output(neighbor_char, color="red")]
+            else:
+                entry = [y, x, neighbor_char]
+            neighbors.append(entry)
+        except IndexError:
+            pass
+
+    return neighbors
+
+
+def legal_connection(center_square_char, neighbor_char, neighbor_relation):
+    """
+    | is a vertical pipe connecting north and south.
+    - is a horizontal pipe connecting east and west.
+    L is a 90-degree bend connecting north and east.
+    J is a 90-degree bend connecting north and west.
+    7 is a 90-degree bend connecting south and west.
+    F is a 90-degree bend connecting south and east.
+    . is ground; there is no pipe in this tile.
+    S is the starting position of the animal; there is a pipe on this tile, but your sketch doesn't show what shape the pipe has.
+
+    eight_surrounding_coordinates = {"upper_left": [up, left],
+                                     "upper_center": [up, char_index],
+                                     "upper_right": [up, right],
+                                     "lower_left": [down, left],
+                                     "lower_center": [down, char_index],
+                                     "lower_right": [down, right],
+                                     "same_left": [line_index, left],
+                                     "same_right": [line_index, right]}
+    """
+    if center_square_char == "S":
+        return True
+    elif center_square_char == "|":
+        if [neighbor_char, neighbor_relation] in [["|", "upper_center"], ["|", "lower_center"],
+                                                  ["S", "upper_center"], ["S", "lower_center"],
+                                                  ["L", "lower_center"], ["J", "lower_center"],
+                                                  ["F", "upper_center"], ["7", "upper_center"]]:
+            return True
+        else:
+            return False
+    elif center_square_char == "-":
+        if [neighbor_char, neighbor_relation] in [["-", "same_left"], ["-", "same_right"],
+                                                  ["S", "same_left"], ["S", "same_right"],
+                                                  ["L", "same_left"], ["J", "same_right"],
+                                                  ["F", "same_left"], ["7", "same_right"]]:
+            return True
+        else:
+            return False
+    elif center_square_char == "L":
+        if [neighbor_char, neighbor_relation] in [["|", "upper_center"], ["-", "same_right"],
+                                                  ["S", "upper_center"], ["S", "same_right"],
+                                                  ["J", "same_right"], ["F", "upper_center"],
+                                                  ["7", "same_right"], ["7", "upper_center"]]:
+            return True
+        else:
+            return False
+    elif center_square_char == "J":
+        if [neighbor_char, neighbor_relation] in [["|", "upper_center"], ["-", "same_left"],
+                                                  ["S", "upper_center"], ["S", "same_left"],
+                                                  ["7", "upper_center"], ["L", "same_left"],
+                                                  ["F", "same_left"], ["F", "upper_center"]]:
+            return True
+        else:
+            return False
+    elif center_square_char == "7":
+        if [neighbor_char, neighbor_relation] in [["|", "lower_center"], ["-", "same_left"],
+                                                  ["S", "lower_center"], ["S", "same_left"],
+                                                  ["J", "lower_center"], ["F", "same_left"],
+                                                  ["L", "lower_center"], ["L", "same_left"]]:
+            return True
+        else:
+            return False
+    elif center_square_char == "F":
+        if [neighbor_char, neighbor_relation] in [["|", "lower_center"], ["-", "same_right"],
+                                                  ["S", "lower_center"], ["S", "same_right"],
+                                                  ["J", "lower_center"], ["J", "same_right"],
+                                                  ["L", "lower_center"], ["7", "same_right"]]:
+            return True
+        else:
+            return False
+    elif center_square_char == ".":
+        return False
+    else:
+        print(color_my_output("We didn't account for all Neighbor Conditions."))
+
+
+def day10():
+    puzzle = Puzzle(year=2023, day=10)
+    dev_lines = "-L|F7\n7S-7|\nL|7||\n-L-J|\nL|-JF"
+    puzzle_lines = dev_lines.split("\n")
+    # puzzle_lines = puzzle.input_data.split("\n")
+    location_of_s = []
+
+    neighbors_map = {}
+    for line_index in range(len(puzzle_lines)):  # Line is y coordinate, char is x coordinate.
+        for char_index in range(len(puzzle_lines[line_index])):
+            # char = puzzle_lines[line_index][char_index]
+            neighbors = who_are_my_neighbors_with_coords_all(line_index, char_index, puzzle_lines)
+            for neighbor in neighbors:  # [y, x, char]
+                y, x, char = neighbor
+                if char == "S":
+                    char = color_my_output(char, color="green")
+                neighbors_map[(y, x)] = char
+    print(neighbors_map)
+    for line_index in range(len(puzzle_lines)):  # Line is y coordinate, char is x coordinate.
+        line = ""
+        for char_index in range(len(puzzle_lines[line_index])):
+            line += neighbors_map[(line_index, char_index)]
+        print(line)
+
+        # if char == "S":
+        #    s = color_my_output(char, color="green")
+        #    #location_of_s = [line_index, char_index, s]
+        #    #neighbors_map[str(s)] =
+
+        # print(color_my_output(jj))
+    # answer = "Answer!"
+    # rainbow_print_answer(answer)
+    # submit(answer, part="a", day=10, year=2023)
 
 
 # 2023-12-11
+def add_a_line(galaxy_data, add_a_blank_line):
+    new_dot_coordinates = []
+    old_dot_coordinates = galaxy_data["."]
+    for old_dot_coordinate in old_dot_coordinates:
+        y, x = old_dot_coordinate
+        if y < add_a_blank_line:
+            new_dot_coordinates.append([y, x])  # No change     0-2
+        elif y == add_a_blank_line:
+            new_dot_coordinates.append([y, x])  # Original Line remains      3
+            new_dot_coordinates.append([y + 1, x])  # Add the new line OF DOTS       4
+        elif y > add_a_blank_line:
+            new_dot_coordinates.append([y + 1, x])  # Bump up everyone else by 1    5-...
+    galaxy_data["."] = new_dot_coordinates
+
+    new_hash_coordinates = []
+    old_hash_coordinates = galaxy_data["#"]
+    for old_hash_coordinate in old_hash_coordinates:
+        y, x = old_hash_coordinate
+        if y < add_a_blank_line:
+            new_hash_coordinates.append([y, x])  # No change     0-2
+        elif y == add_a_blank_line:
+            print("there should not be a hash here!")
+            # new_hash_coordinates.append([y, x])  # Original Line remains      3
+            # Don't add a new line for hashes, only dots.
+        elif y > add_a_blank_line:
+            new_hash_coordinates.append([y + 1, x])  # Bump up everyone else by 1    5-...
+    galaxy_data["#"] = new_dot_coordinates
+
+    return galaxy_data
+
+
+def add_a_column(galaxy_data, add_a_blank_column):
+    new_dot_coordinates = []
+    old_dot_coordinates = galaxy_data["."]
+    for old_dot_coordinate in old_dot_coordinates:
+        y, x = old_dot_coordinate
+        if x < add_a_blank_column:
+            new_dot_coordinates.append([y, x])  # No change     0-2
+        elif x == add_a_blank_column:
+            new_dot_coordinates.append([y, x])  # Original Column remains      3
+            new_dot_coordinates.append([y, x + 1])  # Add the new column OF DOTS       4
+        elif x > add_a_blank_column:
+            new_dot_coordinates.append([y, x + 1])  # Bump up everyone else by 1    5-...
+    galaxy_data["."] = new_dot_coordinates
+
+    new_hash_coordinates = []
+    old_hash_coordinates = galaxy_data["#"]
+    for old_hash_coordinate in old_hash_coordinates:
+        y, x = old_hash_coordinate
+        if x < add_a_blank_column:
+            new_hash_coordinates.append([y, x])  # No change     0-2
+        elif x == add_a_blank_column:
+            print("there should not be a hash here!")
+        #    new_hash_coordinates.append([y, x])  # Original Column remains      3
+        #    # Don't add a line for hashes, only dots.
+        elif x > add_a_blank_column:
+            new_hash_coordinates.append([y, x + 1])  # Bump up everyone else by 1;  line 4 -> 5
+    galaxy_data["#"] = new_hash_coordinates
+
+    return galaxy_data
+
+
 puzzle = Puzzle(year=2023, day=11)
-dev_lines = ""
+dev_lines = "...#......\n.......#..\n#.........\n..........\n......#...\n.#........\n.........#\n..........\n.......#..\n#...#....."
 puzzle_lines = dev_lines.split("\n")
 # puzzle_lines = puzzle.input_data.split("\n")
-for jj in puzzle_lines:
-    print(color_my_output(jj))
-answer = "Answer!"
+
+galaxy_data = {}
+for line_index in range(len(puzzle_lines)):  # Line is y coordinate, char is x coordinate.
+    for char_index in range(len(puzzle_lines[line_index])):
+        char = puzzle_lines[line_index][char_index]
+        coordinates = [line_index, char_index]
+        galaxy_data = append_dict_value_list(galaxy_data, char, coordinates)
+
+# for jj in galaxy_data:
+#    print(color_my_output(galaxy_data[jj]))
+
+blank_lines = []
+for line_index in range(len(puzzle_lines)):
+    count_dots = 0
+    for coord in galaxy_data["."]:
+        y, x = coord
+        if y == line_index:
+            count_dots += 1
+    if count_dots == len(puzzle_lines):
+        blank_lines.append(line_index)
+
+blank_columns = []
+for line_index in range(len(puzzle_lines)):
+    for char_index in range(len(puzzle_lines[line_index])):
+        count_dots = 0
+        for coord in galaxy_data["."]:
+            y, x = coord
+            if x == char_index:
+                count_dots += 1
+        if count_dots == len(puzzle_lines) and char_index not in blank_columns:
+            blank_columns.append(char_index)
+
+# We know the places to add a blank line/column. So, let's just rebuild the data again with our new knowledge.
+# AND!  We don't have to calculate the dots. We're only interested in hash.
+
+old_hash_coords = galaxy_data["#"]
+print(old_hash_coords)
+new_hash_coords = []
+part_a_adder = 1
+part_b_adder = 1000000-1    # one row is worth a million. So ADD 999999
+for coord in old_hash_coords:
+    y, x = coord
+    line_jump = 0
+    column_jump = 0
+    for ll in blank_lines:
+        if y > ll:
+            line_jump += part_b_adder
+    for cc in blank_columns:
+        if x > cc:
+            column_jump += part_b_adder
+    new_coordinate = [y + line_jump, x + column_jump]
+    new_hash_coords.append(new_coordinate)
+
+print(new_hash_coords)
+# [[0, 4], [1, 9], [2, 0], [5, 8], [6, 1], [7, 12], [10, 9], [11, 0], [11, 5]]
+# [[0, 4], [1, 9], [2, 0], [5, 8], [6, 1], [7, 12], [10, 9], [11, 0], [11, 5]]
+
+#
+# for add_a_blank_line in blank_lines:
+#     galaxy_data = add_a_line(galaxy_data, add_a_blank_line)
+#
+# for add_a_blank_column in blank_columns:
+#     galaxy_data = add_a_column(galaxy_data, add_a_blank_column)
+
+answer = 0
+for coordinate_index in range(len(new_hash_coords)):
+    for internal_index in range(coordinate_index + 1, len(new_hash_coords)):
+        walk_steps = 0
+        start_x, start_y = new_hash_coords[coordinate_index]
+        end_x, end_y = new_hash_coords[internal_index]
+        walk_steps += abs(start_x - end_x)
+        walk_steps += abs(start_y - end_y)
+        answer += walk_steps
+
+# for jj in galaxy_data:
+#    print(color_my_output(galaxy_data[jj]))
+# answer = "Answer!"
 rainbow_print_answer(answer)
-# submit(answer, part="a", day=11, year=2023)
+#submit(answer, part="b", day=11, year=2023)
 
 
+"""
 # 2023-12-12
 puzzle = Puzzle(year=2023, day=12)
 dev_lines = ""
