@@ -1,5 +1,6 @@
 from aocd.models import Puzzle
 from aocd import submit
+import re
 
 # COMMON FUNCTIONS
 
@@ -1697,55 +1698,347 @@ def day11():
     submit(answer, part="b", day=11, year=2023)
 
 
-"""
 # 2023-12-12
-puzzle = Puzzle(year=2023, day=12)
-dev_lines = ""
-puzzle_lines = dev_lines.split("\n")
-# puzzle_lines = puzzle.input_data.split("\n")
-for jj in puzzle_lines:
-    print(color_my_output(jj))
-answer = "Answer!"
-rainbow_print_answer(answer)
-# submit(answer, part="a", day=12, year=2023)
+def check_a_pattern_try1(pattern, desired, sum_of_counts):
+    starting_point = 0
+    how_many_hash = pattern.count("#")
+    for phrase in desired:
+        starting_point = pattern.find(phrase, starting_point)
+        if starting_point < 0:
+            return False
+        starting_point = starting_point + len(phrase) - 1  # -1 for the ending dot
+        if how_many_hash != sum_of_counts:
+            return False
+    return True
+
+
+# def check_a_pattern(pattern, counts):
+
+
+def per(n):
+    # Help from https://stackoverflow.com/questions/14931769/how-to-get-all-combination-of-n-binary-value
+    qmark_replacements = []
+    for i in range(1 << n):
+        s = bin(i)[2:]
+        s = '0' * (n - len(s)) + s
+        # print(s)
+        qmark_replacement = ''
+        for char in s:
+            if char == '0':
+                qmark_replacement += "."
+            else:
+                qmark_replacement += "#"
+        qmark_replacements.append(qmark_replacement)
+    return qmark_replacements
+
+
+def try_2():
+    bin = [0, 1]
+    return [(x, y, z) for x in bin for y in bin for z in bin]
+
+
+def try_all_patterns(pattern, desired, counts):
+    possible_patterns = []
+    q_marks = []
+    for char_index in range(len(pattern)):
+        if pattern[char_index] == "?":
+            q_marks.append(char_index)
+    # print(q_marks)
+
+    num_possible_patterns = 2 ** len(q_marks)
+    qmark_replacements = per(len(q_marks))
+    # print(qmark_replacements)
+    for make_a_possible_idx in range(num_possible_patterns):
+        q_mark_pattern = qmark_replacements[make_a_possible_idx]
+        q_mark_count_up = 0
+        new_possible_pattern = ""
+        for char in pattern:
+            if char in [".", "#"]:
+                new_possible_pattern += char
+            else:
+                new_possible_pattern += q_mark_pattern[q_mark_count_up]
+                q_mark_count_up += 1
+        if new_possible_pattern not in possible_patterns:
+            possible_patterns.append(new_possible_pattern)
+
+    legal_patterns = 0
+    for pattern in possible_patterns:
+        if check_a_pattern_try1(pattern, desired, sum(counts)):
+            legal_patterns += 1
+            print(color_my_output(pattern))
+        # else:
+        # print(pattern)
+
+    print(legal_patterns, "\n")  # , "out of", print_the_patterns))
+    return legal_patterns
+
+
+def figure_this_line_a(line):
+    pieces = line.split(" ")
+    pattern = "." + pieces[0] + "."  # Add neutral bounding bookends.
+    counts = pieces[1]
+    counts = [int(x) for x in counts.split(",")]
+    desired = ["." + "#" * x + "." for x in counts]
+    # print(pattern, desired)
+    return try_all_patterns(pattern, desired, counts)
+
+
+def list_multiplier(string, multiplier):
+    multiplied_list = []
+    for j in range(multiplier):
+        multiplied_list.append(string)
+    return multiplied_list
+
+
+def figure_this_line_b(line):
+    b_multiplier = 5
+    pieces = line.split(" ")
+    interior_pattern = "?".join(list_multiplier(string=pieces[0], multiplier=b_multiplier))
+    pattern = "." + interior_pattern + "."  # Add neutral bounding bookends.
+    # counts = pieces[1]
+    counts = ",".join(list_multiplier(string=pieces[1], multiplier=b_multiplier))
+    counts = [int(x) for x in counts.split(",")]
+    multiplied_counts = []
+    for b in range(b_multiplier):
+        multiplied_counts += counts
+    desired = ["." + "#" * x + "." for x in counts]
+    print(pattern, counts, desired)
+    return try_all_patterns(pattern, desired, counts)
+
+
+def day12():
+    puzzle = Puzzle(year=2023, day=12)
+    dev_lines = "???.### 1,1,3\n.??..??...?##. 1,1,3\n?#?#?#?#?#?#?#? 1,3,1,6\n????.#...#... 4,1,1\n????.######..#####. 1,6,5\n?###???????? 3,2,1"
+    puzzle_lines = dev_lines.split("\n")
+    # puzzle_lines = puzzle.input_data.split("\n")
+    # result = check_a_pattern(pattern='.###.###.', desired=['.#.', '.#.', '.###.'])
+    total_legal_patterns = 0
+    for line in puzzle_lines:
+        total_legal_patterns += figure_this_line_b(line)
+    rainbow_print_answer(total_legal_patterns)  # Want 21 [DEV]
+    # submit(total_legal_patterns, part="a", day=12, year=2023)
 
 
 # 2023-12-13
-puzzle = Puzzle(year=2023, day=13)
-dev_lines = ""
-puzzle_lines = dev_lines.split("\n")
-# puzzle_lines = puzzle.input_data.split("\n")
-for jj in puzzle_lines:
-    print(color_my_output(jj))
-answer = "Answer!"
-rainbow_print_answer(answer)
-# submit(answer, part="a", day=13, year=2023)
+def find_candidate_midlines_hori(puzzle_lines):
+    candidates = []
+    for line_idx in range(len(puzzle_lines) - 1):
+        if puzzle_lines[line_idx] == puzzle_lines[line_idx + 1]:
+            candidates.append([line_idx, line_idx + 1])
+    return candidates
+
+
+def find_candidate_midlines_vert(puzzle_lines):
+    candidates = []
+    for col_idx in range(len(puzzle_lines[0]) - 1):
+        transformed_line1 = transform_a_line(puzzle_lines, col_idx)
+        transformed_line2 = transform_a_line(puzzle_lines, col_idx + 1)
+        if transformed_line1 == transformed_line2:
+            candidates.append([col_idx, col_idx + 1])
+    return candidates
+
+
+def transform_a_line(puzzle_lines, col_idx):
+    transformed_line = ""
+    for line_idx in range(len(puzzle_lines)):
+        transformed_line += puzzle_lines[line_idx][col_idx]
+    return transformed_line
+
+
+def test_vertical_candidates(puzzle_lines, candidates):
+    # candidates = [int(x) for x in candidates]
+    can1, can2 = candidates
+    for col_idx in range(len(puzzle_lines[0])):
+        try:
+            transformed_line1 = transform_a_line(puzzle_lines, can1 - col_idx)
+            transformed_line2 = transform_a_line(puzzle_lines, can2 + col_idx)
+            if transformed_line1 != transformed_line2:
+                return False
+        except IndexError:
+            return True  # You're done.
+    return True  # Even Steven
+
+
+def test_horizontal_candidates(puzzle_lines, candidates):
+    can1, can2 = candidates
+    shortest_range = min(can1, len(puzzle_lines) - can2)
+    print(color_my_output(shortest_range, color="blue"))
+
+    for line_idx in range(len(puzzle_lines) - can1):
+        try:
+            lower_index = can1 - line_idx
+            if lower_index < 0:
+                return True
+            lin_1 = puzzle_lines[can1 - line_idx]
+            lin_2 = puzzle_lines[can2 + line_idx]
+            if lin_1 != lin_2:
+                return False
+        except IndexError:
+            return True
+    return True
+
+
+def day13():
+    puzzle = Puzzle(year=2023, day=13)
+    dev_lines = "#.##..##.\n..#.##.#.\n##......#\n##......#\n..#.##.#.\n..##..##.\n#.#.##.#.\n\n#...##..#\n#....#..#\n..##..###\n#####.##.\n#####.##.\n..##..###\n#....#..#"
+    puzzle_boards = dev_lines.split("\n\n")
+    puzzle_boards = puzzle.input_data.split("\n\n")
+    summary = 0
+    for puzzle_board in puzzle_boards:
+        # print(puzzle_board)
+        puzzle_lines_reg = puzzle_board.split("\n")
+        puzzle_lines_trans = []
+        for char_idx in range(len(puzzle_lines_reg[0])):
+            puzzle_lines_trans.append(transform_a_line(puzzle_lines_reg, char_idx))
+        for jj in puzzle_lines_reg:
+            print(jj)
+        reg_candidates = find_candidate_midlines_hori(puzzle_lines_reg)
+        # print(reg_candidates)
+
+        for jj in puzzle_lines_trans:
+            print(color_my_output(jj))
+        trans_candidates = find_candidate_midlines_hori(puzzle_lines_trans)
+        # print(trans_candidates)
+
+        trues = 0
+        for candidate in reg_candidates:
+            reg = test_horizontal_candidates(puzzle_lines_reg, candidate)
+            print("Horizontal", candidate, reg)
+            if reg:
+                trues += 1
+                summary += candidate[1] * 100
+
+        for candidate in trans_candidates:
+            trans = test_horizontal_candidates(puzzle_lines_trans, candidate)
+            print("Vertical", candidate, trans)
+            if trans:
+                trues += 1
+                summary += candidate[1]
+
+        if trues != 1:
+            print(f"Trues not right: {trues}")
+
+    rainbow_print_answer(summary)
+    submit(summary, part="a", day=13, year=2023)
 
 
 # 2023-12-14
-puzzle = Puzzle(year=2023, day=14)
-dev_lines = ""
-puzzle_lines = dev_lines.split("\n")
-# puzzle_lines = puzzle.input_data.split("\n")
-for jj in puzzle_lines:
-    print(color_my_output(jj))
-answer = "Answer!"
-rainbow_print_answer(answer)
-# submit(answer, part="a", day=14, year=2023)
+def day14():
+    puzzle = Puzzle(year=2023, day=14)
+    dev_lines = ""
+    puzzle_lines = dev_lines.split("\n")
+    # puzzle_lines = puzzle.input_data.split("\n")
+    for jj in puzzle_lines:
+        print(color_my_output(jj))
+    answer = "Answer!"
+    rainbow_print_answer(answer)
+    # submit(answer, part="a", day=14, year=2023)
 
 
 # 2023-12-15
-puzzle = Puzzle(year=2023, day=15)
-dev_lines = ""
-puzzle_lines = dev_lines.split("\n")
-# puzzle_lines = puzzle.input_data.split("\n")
-for jj in puzzle_lines:
-    print(color_my_output(jj))
-answer = "Answer!"
-rainbow_print_answer(answer)
-# submit(answer, part="a", day=15, year=2023)
+def hash_a_string(a_string):
+    """The current value starts at 0.
+    The first character is H; its ASCII code is 72.
+    The current value increases to 72.
+    The current value is multiplied by 17 to become 1224.
+    The current value becomes 200 (the remainder of 1224 divided by 256).
+    The next character is A; its ASCII code is 65.
+    The current value increases to 265.
+    """
+    hash_value = 0
+    for char in a_string:
+        hash_value += ord(char)
+        hash_value = hash_value * 17
+        hash_value = hash_value % 256
+    return hash_value
 
 
+def day15a():
+    puzzle = Puzzle(year=2023, day=15)
+    dev_lines = "rn=1,cm-,qp=3,cm=2,qp-,pc=4,ot=9,ab=5,pc-,pc=6,ot=7"
+    instructions = dev_lines.split(",")
+    instructions = puzzle.input_data.split(",")
+    hash_total = 0
+    for instruction in instructions:
+        hash_one_instruction = hash_a_string(instruction)
+        hash_total += hash_one_instruction
+        print(instruction, hash_one_instruction)
+    rainbow_print_answer(hash_total)
+    submit(hash_total, part="a", day=15, year=2023)
+
+
+def get_focusing_power(box_number, slot_number, focal_length):
+    """
+    One plus the box number of the lens in question.
+    The slot number of the lens within the box: 1 for the first lens, 2 for the second lens, and so on.
+    The focal length of the lens.
+    """
+    print(box_number, slot_number, focal_length, box_number * slot_number * focal_length)
+    return box_number * slot_number * focal_length
+
+
+def decrypt_an_instruction(instruction):
+    if "=" in instruction:
+        operation = "="
+        pieces = instruction.split(operation)
+        label = pieces[0]
+        focal_length = int(pieces[1])
+        box_number = hash_a_string(a_string=label)
+        return box_number, label, focal_length
+    else:
+        operation = "-"
+        pieces = instruction.split(operation)
+        label = pieces[0]
+        box_number = hash_a_string(a_string=label)
+        return box_number, label, None
+
+
+def day15b():
+    puzzle = Puzzle(year=2023, day=15)
+    dev_lines = "rn=1,cm-,qp=3,cm=2,qp-,pc=4,ot=9,ab=5,pc-,pc=6,ot=7"
+    instructions = dev_lines.split(",")
+    instructions = puzzle.input_data.split(",")
+
+    boxes = {}
+    for j in range(256):
+        boxes[j] = []
+
+    for instruction in instructions:
+        box_number, label, focal_length = decrypt_an_instruction(instruction)
+        print(instruction, box_number, label, focal_length)
+        if focal_length:  # do =
+            old_lenses = boxes[box_number]
+            potential_add = [label, focal_length]
+            old_lens_labels = [x[0] for x in old_lenses]
+            if label in old_lens_labels:
+                for i in range(len(old_lenses)):
+                    if old_lenses[i][0] == label:
+                        old_lenses[i] = [label, focal_length]
+                        boxes[box_number] = old_lenses
+            else:
+                old_lenses.append([label, focal_length])
+                boxes[box_number] = old_lenses
+        else:  # do -
+            old_lenses = boxes[box_number]
+            for ol in old_lenses:
+                if ol[0] == label:
+                    old_lenses.remove(ol)
+            boxes[box_number] = old_lenses
+        print(boxes)
+
+    total_focusing_power = 0
+    for box in boxes:
+        for slot in range(len(boxes[box])):
+            label, focal_length = boxes[box][slot]
+            total_focusing_power += get_focusing_power(box_number=box + 1,
+                                                       slot_number=slot + 1,
+                                                       focal_length=focal_length)
+
+    rainbow_print_answer(total_focusing_power)
+    submit(total_focusing_power, part="b", day=15, year=2023)
+
+
+"""
 # 2023-12-16
 puzzle = Puzzle(year=2023, day=16)
 dev_lines = ""
